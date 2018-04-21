@@ -2,14 +2,15 @@
 
 module Main where
 
+import Control.Monad.IO.Class
 import Data.Aeson (FromJSON, ToJSON)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
-import Web.Scotty (ScottyM, ActionM, scotty, json, get, text, param)
-import Migration (executeMigrations, initDb)
+import Web.Scotty (ScottyM, ActionM, scotty, text, json, get, post, jsonData, param, liftAndCatchIO)
+import Migration (executeMigrations)
 
 
 data Book = Book 
@@ -30,54 +31,62 @@ instance FromRow Book where
 instance ToRow Book where
     toRow b = [toField (Main.id b), toField (Main.title b), toField (Main.author b), toField (Main.link b), toField (Main.progression b)]
 
+
 connection :: IO (Connection)
 connection = connectPostgreSQL "postgresql://postgres:abc123@localhost/hsb-db"
 
+
 main :: IO ()
 main = do
-  putStrLn "help"
-  initDb
---  putStrLn "Connecting to postgres..."
---  conn <- connection
+  putStrLn "running migrations"
+  executeMigrations
 
---  putStrLn "Setting up db"
---  setupDb
-
---  putStrLn "INSERT book"
---  execute conn "INSERT INTO books VALUES (?, ?, ?, ?, ?)" book1
-
---  putStrLn "SELECT * FROM BOOKS"
---  value <- query_ conn "select * from books"
---  print (value :: [Book])
-
-  --mapM_ print =<< ( query_ conn "select 2 + 2" :: IO [Only Int] )
-  -- mapM_ :: Monad m => (a -> m b) -> [a] -> m ()
-
-  putStrLn "Starting hsb server..."
+  putStrLn "Starting hsb server"
   scotty 3005 routes
+
+
+insertBook :: Book -> IO ()
+insertBook book = do
+  conn <- connection
+  a <- execute conn "INSERT INTO books VALUES (?, ?, ?, ?, ?)" book
+  putStrLn $ "insert book: " ++ (show a)
+
+
+getBooks :: IO [Book]
+getBooks = do
+  conn <- connection
+  query_ conn "SELECT * FROM books;"
 
 
 routes :: ScottyM ()
 routes = do
-  get "/books" ( json books )
+  get "/books" $ do
+    dbBooks <- liftAndCatchIO getBooks
+    json dbBooks
 
   get "/book/:id" $ do 
     id' <- param "id"
-    json (filter (matchId id') books)
+    dbBooks <- liftAndCatchIO getBooks
+    json $ filter (matchId id') dbBooks
 
+  post "/book" $ do
+    book <- jsonData :: ActionM [Book]
+    json book 
 
-baseText :: ActionM ()
-baseText = do
-  text "base api."
 
 matchId :: String -> Book -> Bool
-matchId id book = (Main.id book) == id
+matchId id' book = Main.id book == id'
+
+
+{-
+  --mapM_ print =<< ( query_ conn "select 2 + 2" :: IO [Only Int] )
+  -- mapM_ :: Monad m => (a -> m b) -> [a] -> m ()
 
 books :: [ Book ]
 books = [ book1, book2 ]
 
 book1 :: Book
-book1 = Book 
+ book1 = Book 
   { Main.id = "1"
   , title = "ima book"
   , author = "réjean"
@@ -93,3 +102,4 @@ book2 = Book
   , link = "google.com"
   , progression = 35 
   }
+-}

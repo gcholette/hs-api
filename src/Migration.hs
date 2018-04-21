@@ -14,25 +14,24 @@ postgresUrl = "host=localhost dbname=hsb-db user=showlet password=abc123"
 setupDb :: IO ()
 setupDb = do
   initDb
- -- migrate dropTables
   migrate createBooksTable
 
 executeMigrations :: IO ()
 executeMigrations = do
-  initDb
+  setupDb
 
 initDb :: IO ()
 initDb = do
-    con <- connectPostgreSQL (BS8.pack postgresUrl)
-    withTransaction con $ void $ runMigration $
-        MigrationContext MigrationInitialization True con
+    conn <- connectPostgreSQL (BS8.pack postgresUrl)
+    withTransaction conn $ void $ runMigration $
+        MigrationContext MigrationInitialization True conn
 
 migrate :: BS8.ByteString -> IO ()
 migrate script = do
   let name = "migration script"
-  con <- connectPostgreSQL (BS8.pack postgresUrl)
-  withTransaction con $ void $ runMigration $
-      MigrationContext (MigrationScript name script) True con
+  conn <- connectPostgreSQL (BS8.pack postgresUrl)
+  withTransaction conn $ void $ runMigration $
+      MigrationContext (MigrationScript name script) True conn
 
 dropTables :: BS8.ByteString
 dropTables = "DROP TABLE books;"
