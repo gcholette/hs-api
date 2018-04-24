@@ -9,6 +9,7 @@ import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
+import GHC.Int
 import Web.Scotty (ScottyM, ActionM, scotty, text, json, get, post, jsonData, param, liftAndCatchIO)
 import Migration (executeMigrations)
 
@@ -38,24 +39,11 @@ connection = connectPostgreSQL "postgresql://postgres:abc123@localhost/hsb-db"
 
 main :: IO ()
 main = do
-  putStrLn "running migrations"
+  putStrLn "initiating migrations"
   executeMigrations
 
   putStrLn "Starting hsb server"
   scotty 3005 routes
-
-
-insertBook :: Book -> IO ()
-insertBook book = do
-  conn <- connection
-  a <- execute conn "INSERT INTO books VALUES (?, ?, ?, ?, ?)" book
-  putStrLn $ "insert book: " ++ (show a)
-
-
-getBooks :: IO [Book]
-getBooks = do
-  conn <- connection
-  query_ conn "SELECT * FROM books;"
 
 
 routes :: ScottyM ()
@@ -70,8 +58,21 @@ routes = do
     json $ filter (matchId id') dbBooks
 
   post "/book" $ do
-    book <- jsonData :: ActionM [Book]
-    json book 
+    book <- jsonData :: ActionM Book
+    res <- liftAndCatchIO $ insertBook book
+    json $ show res
+
+
+insertBook :: Book -> IO Int64 
+insertBook book = do
+  conn <- connection
+  execute conn "INSERT INTO books VALUES (?, ?, ?, ?, ?)" book
+
+
+getBooks :: IO [Book]
+getBooks = do
+  conn <- connection
+  query_ conn "SELECT * FROM books;"
 
 
 matchId :: String -> Book -> Bool
