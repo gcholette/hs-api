@@ -24,4 +24,5 @@ executable hsb-api
                        aeson,
                        directory,
                        postgresql-simple,
-                       postgresql-simple-migration
+                       postgresql-simple-migration,
+                       wai-cors

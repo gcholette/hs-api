@@ -10,8 +10,9 @@ import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
 import GHC.Int
-import Web.Scotty (ScottyM, ActionM, scotty, text, json, get, post, jsonData, param, liftAndCatchIO)
+import Web.Scotty (ScottyM, ActionM, scotty, middleware, text, json, get, post, options, jsonData, param, liftAndCatchIO)
 import Migration (executeMigrations)
+import Network.Wai.Middleware.Cors
 
 
 data Book = Book 
@@ -48,8 +49,11 @@ main = do
 
 routes :: ScottyM ()
 routes = do
+  middleware simpleCors
+
   get "/books" $ do
     dbBooks <- liftAndCatchIO getBooks
+    liftAndCatchIO $ putStrLn "GET /books"
     json dbBooks
 
   get "/book/:id" $ do 
