@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, ScopedTypeVariables #-}
 
 module Migration where
 
@@ -17,20 +17,18 @@ data PgScript = PgScript
   } deriving (Show, Generic)
 
 
-postgresUrl :: String
-postgresUrl = "host=localhost dbname=hsb-db user=showlet password=abc123"
-
+connection :: IO (Connection)
+connection = connectPostgreSQL "postgresql://postgres:abc123@localhost/hsb_db"
 
 path :: FilePath
-path = "migrations/"
-
+path = "migrationss/"
 
 absPath :: IO FilePath
 absPath = makeAbsolute path
 
-
 getFileNames :: IO [FilePath]
-getFileNames = absPath >>= listDirectory
+getFileNames = do
+    absPath >>= listDirectory
 
 
 getFilePaths :: IO [FilePath]
@@ -54,13 +52,14 @@ executeMigrations = do
 
 initDb :: IO ()
 initDb = do
-    conn <- connectPostgreSQL (BS8.pack postgresUrl)
+    conn <- connection
     withTransaction conn $ void $ runMigration $
         MigrationContext MigrationInitialization True conn
 
 
 migrate :: PgScript -> IO ()
 migrate (PgScript name content) = do
-  conn <- connectPostgreSQL (BS8.pack postgresUrl)
+  conn <- connection
   withTransaction conn $ void $ runMigration $
       MigrationContext (MigrationScript name content) True conn
+

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, ScopedTypeVariables #-}
 
 module Main where
 
@@ -13,6 +13,7 @@ import GHC.Int
 import Web.Scotty (ScottyM, ActionM, scotty, middleware, text, json, get, post, options, jsonData, param, liftAndCatchIO)
 import Migration (executeMigrations)
 import Network.Wai.Middleware.Cors
+import Control.Exception
 
 
 data Book = Book 
@@ -35,13 +36,14 @@ instance ToRow Book where
 
 
 connection :: IO (Connection)
-connection = connectPostgreSQL "postgresql://postgres:abc123@localhost/hsb-db"
+connection = connectPostgreSQL "postgresql://postgres:abc123@localhost/hsb_db"
 
 
 main :: IO ()
 main = do
   putStrLn "initiating migrations"
-  executeMigrations
+  handle (\(e :: IOException) -> putStrLn "Migrations failed" >> print e)
+    executeMigrations
 
   putStrLn "Starting hsb server"
   scotty 3005 routes
