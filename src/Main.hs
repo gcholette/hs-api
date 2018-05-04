@@ -1,4 +1,9 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings
+, DeriveGeneric
+, ScopedTypeVariables 
+, DataKinds 
+, TypeOperators 
+#-}
 
 module Main where
 
@@ -10,14 +15,31 @@ import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
 import GHC.Int
-import Web.Scotty as API (ScottyM, ActionM, scotty, middleware, text, json, get, post, options, jsonData, param, liftAndCatchIO)
 import Network.Wai.Middleware.Cors
+import Network.Wai.Handler.Warp (run)
 import Control.Exception
+import Servant
 
 import Book
 import Db
 import Migration (executeMigrations)
 
+type BookAPI = "books" :> Get '[JSON] [Book]
+           :<|> "book" :> ReqBody '[JSON] Book 
+                       :> Post '[JSON] Book
+           :<|> "book" :> Capture "id" String 
+                       :> Get '[JSON] Book
+
+server :: Server BookAPI
+server = (liftIO Book.index) 
+    :<|> liftIO . Book.insert
+    :<|> liftIO . Book.show
+
+bookAPI :: Proxy BookAPI
+bookAPI = Proxy
+
+app :: Application
+app = serve bookAPI server
 
 main :: IO ()
 main = do
@@ -25,25 +47,5 @@ main = do
   handle (\(e :: IOException) -> putStrLn "Migrations failed" >> print e)
     executeMigrations
 
-  putStrLn "Starting hsb server"
-  scotty 3005 routes
-
-
-routes :: ScottyM ()
-routes = do
-  middleware simpleCors
-
-  API.get "/books" $ do
-    dbBooks <- liftAndCatchIO Book.getAll
-    liftAndCatchIO $ putStrLn "GET /books"
-    json dbBooks
-
-  API.get "/book/:id" $ do 
-    id' <- param "id"
-    dbBooks <- liftAndCatchIO Book.getAll
-    json $ filter (matchId id') dbBooks
-
-  API.post "/book" $ do
-    book <- jsonData :: ActionM Book
-    res <- liftAndCatchIO $ Book.insert book
-    json $ show res
+  putStrLn "Starting hsb server on port 3005..."
+  run 3005 app

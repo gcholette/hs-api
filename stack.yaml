@@ -4,8 +4,9 @@ packages:
 - .
 
 extra-deps:
-- scotty-0.11.1
+- servant-server-0.13.0.1
 - aeson-1.2.4.0
 - postgresql-simple-0.5.3.0
 - postgresql-simple-migration-0.1.11.0
 - wai-cors-0.2.6
+- wai-3.2.1.2

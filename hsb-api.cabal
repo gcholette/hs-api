@@ -21,10 +21,12 @@ executable hsb-api
                        Book,
                        Db
   build-depends:       base,
-                       scotty,
+                       servant-server,
                        bytestring,
                        aeson,
                        directory,
                        postgresql-simple,
                        postgresql-simple-migration,
-                       wai-cors
+                       wai-cors,
+                       wai,
+                       warp
