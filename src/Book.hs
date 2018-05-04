@@ -43,14 +43,6 @@ insert book = do
   execute conn "INSERT INTO books VALUES (?, ?, ?, ?, ?)" book
   return book
 
-{-
-update :: Book -> IO Book 
-update book = do
-  conn <- connection
-  execute conn "UPDATE books SET " book
-  return book
-  -}
-
 index :: IO [Book]
 index = do
   conn <- connection
@@ -60,7 +52,15 @@ show :: String -> IO Book
 show id = do
   conn <- connection
   books <- query conn "SELECT * FROM books where id = ? " (Only (id :: String))
-  return ((books !! 0) :: Book)
+  return (books !! 0) 
 
 matchId :: String -> Book -> Bool
 matchId id' book = Book.id book == id'
+
+{-
+update :: Book -> IO Book 
+update book = do
+  conn <- connection
+  execute conn "UPDATE books SET " book
+  return book
+  -}

@@ -25,18 +25,22 @@ import Db
 import Migration (executeMigrations)
 
 type BookAPI = "books" :> Get '[JSON] [Book]
-           :<|> "book" :> ReqBody '[JSON] Book 
-                       :> Post '[JSON] Book
-           :<|> "book" :> Capture "id" String 
-                       :> Get '[JSON] Book
+
+          :<|> "book" :> ReqBody '[JSON] Book 
+                      :> Post '[JSON] Book
+
+          :<|> "book" :> Capture "id" String 
+                      :> Get '[JSON] Book
+
 
 server :: Server BookAPI
-server = (liftIO Book.index) 
+server = liftIO   Book.index
     :<|> liftIO . Book.insert
     :<|> liftIO . Book.show
 
 bookAPI :: Proxy BookAPI
 bookAPI = Proxy
+
 
 app :: Application
 app = serve bookAPI server
