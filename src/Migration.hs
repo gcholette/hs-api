@@ -10,18 +10,15 @@ import qualified Data.ByteString.Char8 as BS8
 import System.Directory
 import GHC.Generics
 
+import Db
 
 data PgScript = PgScript
   { name :: ScriptName
   , content :: BS8.ByteString
   } deriving (Show, Generic)
 
-
-connection :: IO (Connection)
-connection = connectPostgreSQL "postgresql://postgres:abc123@localhost/hsb_db"
-
 path :: FilePath
-path = "migrationss/"
+path = "migrations/"
 
 absPath :: IO FilePath
 absPath = makeAbsolute path
