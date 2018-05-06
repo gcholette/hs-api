@@ -9,6 +9,7 @@ import Database.PostgreSQL.Simple
 import qualified Data.ByteString.Char8 as BS8 
 import System.Directory
 import GHC.Generics
+import Data.List
 
 import Db
 
@@ -17,34 +18,50 @@ data PgScript = PgScript
   , content :: BS8.ByteString
   } deriving (Show, Generic)
 
-path :: FilePath
-path = "migrations/"
 
-absPath :: IO FilePath
-absPath = makeAbsolute path
-
-getFileNames :: IO [FilePath]
-getFileNames = do
-    absPath >>= listDirectory
+migrationsPath :: FilePath
+migrationsPath = "db/migrations/"
 
 
-getFilePaths :: IO [FilePath]
-getFilePaths = do
-  fileNames <- getFileNames
-  mapM (\file -> makeAbsolute (path ++ file)) fileNames
-
-
-readMigrationScript :: String -> IO BS8.ByteString
-readMigrationScript path = BS8.readFile path
-
-
-executeMigrations :: IO ()
-executeMigrations = do
+setup :: IO ()
+setup = do
   initDb
+  createSchema
+  migrations
+  seedDatabase
+
+
+createSchema :: IO () 
+createSchema = do
+  schema <- readMigrationScript "db/schema.sql"
+  migrate (PgScript "schema" schema)
+
+
+migrations :: IO ()
+migrations = do
   fileNames  <- getFileNames
   filePaths  <- getFilePaths
   migrations <- mapM (readMigrationScript) filePaths
-  mapM_ (migrate) [ PgScript (show a) b | (a, b) <- zip fileNames migrations ] 
+  mapM_ (migrate) [ PgScript (show a) b | (a, b) <- zip (fileNames) migrations ] 
+    where
+      absPath = makeAbsolute migrationsPath
+
+      getFileNames = do
+          absPath >>= listDirectory
+
+      getFilePaths = do
+        fileNames <- getFileNames
+        mapM (\file -> makeAbsolute (migrationsPath ++ file)) fileNames
+
+
+seedDatabase :: IO () 
+seedDatabase = do
+  seeds <- readMigrationScript "db/seeds.sql"
+  migrate (PgScript "seeds" seeds)
+
+
+readMigrationScript :: FilePath -> IO BS8.ByteString
+readMigrationScript path = BS8.readFile path
 
 
 initDb :: IO ()
