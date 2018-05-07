@@ -16,6 +16,7 @@ import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
 import GHC.Int
 import Control.Applicative
+import Data.Maybe
 
 import Db (connection)
 
@@ -40,7 +41,7 @@ instance ToJSON Book {- where
 instance FromJSON Book where
   parseJSON = withObject "book" $ \b -> do
     id          <- optional (b .: "id")
-    title       <- b .: "title"
+    title       <- optional (b .: "title")
     author      <- b .: "author"
     link        <- b .: "link"
     progression <- b .: "progression"
@@ -84,8 +85,13 @@ showQuery   = "SELECT * FROM books where id = ?;"
 insertQuery = "INSERT INTO books (title, author, link, progression) VALUES (?, ?, ?, ?);"
 
 
-update :: Book -> IO Book 
-update book = do
+update :: Int -> Book -> IO Book 
+update id (Book Nothing title author link progression) = do
   conn <- connection
-  execute conn "UPDATE books SET author = ? where id = ?" book
-  return book
+  let (Just val) = val
+  execute conn "UPDATE books SET (title, author, link, progression) = (?, ?, ?, ?) WHERE id = ?;" 
+    [ title, author, link, Prelude.show (fromJust progression), fromJust id ]
+
+  return (Book (Just id) title author link progression) 
+
+updateQuery name attr id = "UPDATE books SET ? = ? where id = ?;"

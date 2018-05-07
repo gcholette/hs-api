@@ -24,14 +24,16 @@ import Servant
 import Book
 
 type BookAPI = "books" :> Get '[JSON] [Book]
+
           :<|> "book" :> Capture "id" Int 
                       :> Get '[JSON] Book
+
           :<|> "book" :> ReqBody '[JSON] Book 
                       :> Post '[JSON] Book
 
-        --  :<|> "book" :> Capture "id" String 
-        --              :> ReqBody '[JSON] Book 
-        --              :> Get '[JSON] Book
+          :<|> "book" :> Capture "id" Int 
+                       :> ReqBody '[JSON] Book 
+                       :> Patch '[JSON] Book
 
 type UserAPI = "user" :> Get '[JSON] [Book]
 
@@ -42,7 +44,8 @@ server = liftIO  (indexmsg -- yay crappy logging
                       >> (Book.show id))
     :<|> liftIO . (\id -> insertmsg 
                       >> (Book.insert id))
-    -- :<|> liftIO . Book.insert
+    :<|> (\id body -> liftIO (Book.update id body))
+
       where
         indexmsg   = putStrLn "GET /books"
         showmsg id = putStrLn $ "GET /book" ++ (Prelude.show id)
