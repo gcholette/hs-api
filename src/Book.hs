@@ -3,7 +3,8 @@
   OverloadedStrings, 
   DeriveGeneric,
   ScopedTypeVariables,
-  RecordWildCards 
+  RecordWildCards ,
+  DuplicateRecordFields
 #-}
 
 module Book where
@@ -16,17 +17,20 @@ import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
 import GHC.Int
 import Control.Applicative
+import Data.Maybe
+import Data.Monoid ((<>)) -- Concatenates stff that isnt strigs
 
 import Db (connection)
 
 
 data Book = Book 
   { id :: Maybe Int
-  , title :: Maybe String  
-  , author :: Maybe String
-  , link :: Maybe String
-  , progression :: Maybe Int 
+  , title :: String  
+  , author :: String
+  , link :: String
+  , progression :: Int 
   } deriving (Show, Generic)
+
 
 
 instance ToJSON Book {- where
@@ -84,8 +88,8 @@ showQuery   = "SELECT * FROM books where id = ?;"
 insertQuery = "INSERT INTO books (title, author, link, progression) VALUES (?, ?, ?, ?);"
 
 
-update :: Book -> IO Book 
-update book = do
+update :: Int -> Book -> IO Int64 
+update id (Book Nothing title author link progression) = do
   conn <- connection
-  execute conn "UPDATE books SET author = ? where id = ?" book
-  return book
+  execute conn "UPDATE books SET (title, author, link, progression) = (?, ?, ?, ?) WHERE id = ?;" 
+    [ title, author, link, Prelude.show progression, Prelude.show id ]

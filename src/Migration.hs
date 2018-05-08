@@ -56,8 +56,10 @@ migrations = do
 
 seedDatabase :: IO () 
 seedDatabase = do
+  conn <- connection
   seeds <- readMigrationScript "db/seeds.sql"
   migrate (PgScript "seeds" seeds)
+  void $ execute_ conn "DELETE FROM schema_migrations where filename = 'seeds';"
 
 
 readMigrationScript :: FilePath -> IO BS8.ByteString
