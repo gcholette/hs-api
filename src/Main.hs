@@ -33,23 +33,23 @@ type BookAPI = "books" :> Get '[JSON] [Book]
 
           :<|> "book" :> Capture "id" Int 
                        :> ReqBody '[JSON] Book 
-                       :> Patch '[JSON] Book
+                       :> Put '[JSON] Book
 
 type UserAPI = "user" :> Get '[JSON] [Book]
 
 server :: Server BookAPI
-server = liftIO  (indexmsg -- yay crappy logging
-                      >> Book.index)
-    :<|> liftIO . (\id -> (showmsg id) 
-                      >> (Book.show id))
-    :<|> liftIO . (\id -> insertmsg 
-                      >> (Book.insert id))
-    :<|> (\id body -> liftIO (Book.update id body))
+server = liftIO   Book.index
+    :<|> liftIO . (\id -> Book.show id)
+    :<|> liftIO . (\id -> Book.insert id)
+
+    :<|> (\id body -> do
+      result <- liftIO (Book.update id body)
+      if result == 1
+        then return body
+        else throwError book404)
 
       where
-        indexmsg   = putStrLn "GET /books"
-        showmsg id = putStrLn $ "GET /book" ++ (Prelude.show id)
-        insertmsg  = putStrLn "POST /book"
+        book404 = err404 { errBody = "Book not found."}
 
 
 bookAPI :: Proxy BookAPI
