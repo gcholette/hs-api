@@ -1,3 +1,10 @@
 # hsb-api
 
-playing around with postgresql-simple and scotty haskell libs to make a RestAPI
+Basic haskell json api built with servant and postgresql-simple. It can do CRUDs with a postgres database and has a rudimentary migration system.
+
+# Usage
+```Shell
+stack ghci
+> Migrations.setup
+> main
+```
